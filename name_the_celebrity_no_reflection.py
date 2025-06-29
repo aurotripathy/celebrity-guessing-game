@@ -6,7 +6,6 @@ import sys
 from typing import Literal
 
 
-
 class QuestionGenerator(dspy.Signature):
     """Generate a yes/no question in order to guess the celebrity's name in the user's mind.
     You can ask a general question or directly guess the celebrity's name if you think the signal is strong enough
@@ -65,4 +64,4 @@ class CelebrityGuess(dspy.Module):
 
 if __name__ == "__main__":
     celebrity_guess = CelebrityGuess()
-    celebrity_guess()
+    celebrity_guess.forward()
