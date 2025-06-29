@@ -5,16 +5,12 @@ import os
 import sys
 from typing import Literal
 
-openai.api_key = os.environ["OPENAI_API_KEY"]
-lm = dspy.LM('openai/gpt-4o-mini', api_key=openai.api_key)
-dspy.settings.configure(lm=lm)
-dspy.inspect_history(n=1)
 
 # Initialize the model with API key
 try:
     openai.api_key = os.environ["OPENAI_API_KEY"]
-    lm = dspy.LM('openai/gpt-4o-mini', api_key=openai.api_key)
-    dspy.settings.configure(lm=lm)
+    guessing_llm = dspy.LM('openai/gpt-4o-mini', api_key=openai.api_key)
+    dspy.settings.configure(lm=guessing_llm)
     dspy.inspect_history(n=1)
 except Exception as e:
     print(f"Error initializing OpenAI model: {str(e)}")
