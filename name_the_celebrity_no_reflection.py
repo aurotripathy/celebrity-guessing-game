@@ -17,7 +17,7 @@ class QuestionGenerator(dspy.Signature):
     new_question: str = dspy.OutputField(desc="new question that can help narrow down the celebrity name")
 
 
-def ask(prompt, valid_responses=("y", "n")):
+def ask_current_question(prompt, valid_responses=("y", "n")):
     while True:
         response = input(f"{prompt} ({'/'.join(valid_responses)}): ").strip().lower()
         if response in valid_responses:
@@ -36,7 +36,7 @@ class CelebrityGuess(dspy.Module):
         self.max_tries = 20
 
     def forward(self):
-        celebrity_name = input("Please think of a celebrity name, when ready, type the name and press enter...")
+        celebrity_name = input("Please think of a celebrity name, when ready, type the name and press enter...") # not verified 
         past_questions = []
         past_answers = []
 
@@ -47,7 +47,7 @@ class CelebrityGuess(dspy.Module):
                 past_questions=past_questions,
                 past_answers=past_answers,
             )
-            answer = ask(f"{question.new_question}").lower() == "y"
+            answer = ask_current_question(f"{question.new_question}").lower() == "y"
             past_questions.append(question.new_question)
             past_answers.append(answer)
 
