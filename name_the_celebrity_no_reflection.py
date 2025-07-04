@@ -36,8 +36,9 @@ class CelebrityGuess(dspy.Module):
     def __init__(self, max_tries=10):
         super().__init__()
         # Initialize the model with API key
+        model = "openai/gpt-4o"
         openai.api_key = os.environ["OPENAI_API_KEY"]
-        guessing_llm = dspy.LM('openai/gpt-4o-mini', api_key=openai.api_key)
+        guessing_llm = dspy.LM(model, api_key=openai.api_key)
         dspy.settings.configure(lm=guessing_llm)
 
     def forward(self):
@@ -84,7 +85,7 @@ class CelebrityGuess(dspy.Module):
                         past_answers=self.past_answers,
                     )
                     await self.session.say(self.question.new_question)
-                    await asyncio.sleep(1)  # Wait 1 second before next question
+                    await asyncio.sleep(2)  # Wait 2 seconds before next question
 
                     logger.info(f'++ guess_made: {self.question.guess_made}')
                     if self.question.guess_made and self.answer:
@@ -104,15 +105,15 @@ class CelebrityGuess(dspy.Module):
                 user_text = user_text.lower().strip()
                 logger.info(f'lower case and stripped user_text: {user_text}')
                 
+                if self.guessed_correctly:
+                    return
+                
                 if "yes" in user_text:
                     self.answer = True
                 elif "no" in user_text:
                     self.answer = False
                 else:
                     logger.info(f'++ answer unssigned for {user_text}')
-                
-                if self.guessed_correctly:
-                    return
                 
                 logger.info(f'++ Appending {self.question.new_question} and answer {self.answer}')
                 self.past_questions.append(self.question.new_question)
