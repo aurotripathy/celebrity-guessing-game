@@ -5,8 +5,6 @@ import os
 import sys
 from typing import Literal
 
-
-
 # voice agent imports
 import asyncio
 from livekit.agents import JobContext, WorkerOptions, cli
@@ -28,14 +26,13 @@ class QuestionGenerator(dspy.Signature):
     new_question: str = dspy.OutputField(desc="new question that can help narrow down the celebrity name")
 
 
-def ask_current_question(prompt, valid_responses=("y", "n")):
-    while True:
-        response = input(f"{prompt} ({'/'.join(valid_responses)}): ").strip().lower()
-        if response in valid_responses:
-            return response
-        # print(f"Please enter one of: {', '.join(valid_responses)}")
-
 class CelebrityGuess(dspy.Module):
+    """
+    This class is a voice agent that can guess the celebrity's name in the user's mind.
+    It uses a question generator to generate questions and a voice agent to ask the questions.
+    It uses a voice agent to ask the questions and a voice agent to answer the questions.
+    It uses a voice agent to ask the questions and a voice agent to answer the questions.
+    """    
     def __init__(self, max_tries=10):
         super().__init__()
         # Initialize the model with API key
@@ -60,6 +57,7 @@ class CelebrityGuess(dspy.Module):
                 self.question_generator = dspy.ChainOfThought(QuestionGenerator)
                 self.past_questions = []
                 self.past_answers = []
+                self.answer = None
 
        
             async def on_enter(self):
@@ -77,8 +75,6 @@ class CelebrityGuess(dspy.Module):
                 # Then ask series of yes/no questions
                 await self.ask_series_of_yes_no_questions()
                 
-                 
-            
             
             async def ask_series_of_yes_no_questions(self):
                 
@@ -91,17 +87,14 @@ class CelebrityGuess(dspy.Module):
                     await self.session.say(self.question.new_question)
                     await asyncio.sleep(1)  # Wait 1 second before next question
 
-                    # # answer = ask_current_question(f"{question.new_question}").lower() == "y"
-                    # answer = True # for testing
-                    # past_questions.append(question.new_question)
-                    # past_answers.append(answer)
 
-                    if self.question.guess_made and answer:
+                    if self.question.guess_made and self.answer:
                         correct_guess = True
                         break
 
+                logger.info(f'++ correctly guessed: {correct_guess}')
                 if correct_guess:
-                    await self.session.say("Yay! I got it right!")
+                    await self.session.say("Yay! I guessed right!")
                 else:
                     await self.session.say("Oops, I couldn't guess it right.")
 
@@ -113,15 +106,15 @@ class CelebrityGuess(dspy.Module):
                 logger.info(f'lower case and stripped user_text: {user_text}')
                 
                 if "yes" in user_text:
-                    answer = True
+                    self.answer = True
                 elif "no" in user_text:
-                    answer = False
+                    self.answer = False
                 else:
                     logger.info(f'++ answer unssigned for {user_text}')
                 
-                logger.info(f'++ Appending {self.question.new_question} and answer {answer}')
+                logger.info(f'++ Appending {self.question.new_question} and answer {self.answer}')
                 self.past_questions.append(self.question.new_question)
-                self.past_answers.append(answer)
+                self.past_answers.append(self.answer)
                 logger.info(f'--> past_questions: {self.past_questions}')
                 logger.info(f'--> past_answers: {self.past_answers}')
 
