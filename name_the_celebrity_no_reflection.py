@@ -115,11 +115,11 @@ class CelebrityGuess(dspy.Module):
                 else:
                     logger.info(f'++ answer unssigned for {user_text}')
                 
-                logger.info(f'++ Appending {self.question.new_question} and answer {self.answer}')
+                logger.debug(f'++ Appending {self.question.new_question} and answer {self.answer}')
                 self.past_questions.append(self.question.new_question)
                 self.past_answers.append(self.answer)
-                logger.info(f'--> past_questions: {self.past_questions}')
-                logger.info(f'--> past_answers: {self.past_answers}')
+                logger.debug(f'--> past_questions: {self.past_questions}')
+                logger.debug(f'--> past_answers: {self.past_answers}')
 
                 
                 # Move to next question after a short delay
