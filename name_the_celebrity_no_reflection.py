@@ -58,6 +58,9 @@ class CelebrityGuess(dspy.Module):
                 self.max_tries = 20
                 # Initialize the question generator for this voice agent
                 self.question_generator = dspy.ChainOfThought(QuestionGenerator)
+                self.past_questions = []
+                self.past_answers = []
+
        
             async def on_enter(self):
                 # Start by a one line introduction
@@ -65,36 +68,35 @@ class CelebrityGuess(dspy.Module):
                 await self.session.say("Please think of a celebrity name.")
                 await asyncio.sleep(1)  # Wait 1 second before next question
 
+                @self.session.on("user_input_transcribed")
+                def on_transcript(transcript):
+                    if transcript.is_final:
+                        logger.info(f'<--Response transcript: {transcript.transcript}')
+                        asyncio.create_task(self.handle_user_response(transcript.transcript))  
+
                 # Then ask series of yes/no questions
                 await self.ask_series_of_yes_no_questions()
                 
-                # Set up event handler to listen for user responses
-                @self.session.on("user_input_transcribed")
-                def on_user_response(event):
-                    if event.is_final:
-                        logger.info(f'event.transcript: {event.transcript}')
-                        asyncio.create_task(self.handle_user_response(event.transcript))
-                
+                 
             
             
             async def ask_series_of_yes_no_questions(self):
-                past_questions = []
-                past_answers = []
+                
                 correct_guess = False
                 for i in range(self.max_tries):
-                    question = self.question_generator(
-                        past_questions=past_questions,
-                        past_answers=past_answers,
+                    self.question = self.question_generator(
+                        past_questions=self.past_questions,
+                        past_answers=self.past_answers,
                     )
-                    await self.session.say(question.new_question)
+                    await self.session.say(self.question.new_question)
                     await asyncio.sleep(1)  # Wait 1 second before next question
 
-                    # answer = ask_current_question(f"{question.new_question}").lower() == "y"
-                    answer = True # for testing
-                    past_questions.append(question.new_question)
-                    past_answers.append(answer)
+                    # # answer = ask_current_question(f"{question.new_question}").lower() == "y"
+                    # answer = True # for testing
+                    # past_questions.append(question.new_question)
+                    # past_answers.append(answer)
 
-                    if question.guess_made and answer:
+                    if self.question.guess_made and answer:
                         correct_guess = True
                         break
 
@@ -106,17 +108,23 @@ class CelebrityGuess(dspy.Module):
                 
             
             async def handle_user_response(self, user_text: str):
-                logger.info(f'user_text: {user_text}')
-                user_text = user_text.lower().strip()
                 
-                # Respond based on user's answer
-                if "yes" in user_text or "yeah" in user_text or "sure" in user_text:
-                    await self.session.say("Great!")
-                elif "no" in user_text or "nope" in user_text:
-                    await self.session.say("Oh, that's too bad.")
+                user_text = user_text.lower().strip()
+                logger.info(f'lower case and stripped user_text: {user_text}')
+                
+                if "yes" in user_text:
+                    answer = True
+                elif "no" in user_text:
+                    answer = False
                 else:
-                    await self.session.say("I didn't catch that. Could you answer yes or no?")
-                    return  # Don't move to next question if we didn't understand
+                    logger.info(f'++ answer unssigned for {user_text}')
+                
+                logger.info(f'++ Appending {self.question.new_question} and answer {answer}')
+                self.past_questions.append(self.question.new_question)
+                self.past_answers.append(answer)
+                logger.info(f'--> past_questions: {self.past_questions}')
+                logger.info(f'--> past_answers: {self.past_answers}')
+
                 
                 # Move to next question after a short delay
                 await asyncio.sleep(1)  # Wait 1 second before next question
