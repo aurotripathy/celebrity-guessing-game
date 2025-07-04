@@ -35,7 +35,6 @@ class CelebrityGuess(dspy.Module):
     """    
     def __init__(self, max_tries=10):
         super().__init__()
-        # Initialize the model with API key
         model = "openai/gpt-4o"
         openai.api_key = os.environ["OPENAI_API_KEY"]
         guessing_llm = dspy.LM(model, api_key=openai.api_key)
@@ -49,7 +48,6 @@ class CelebrityGuess(dspy.Module):
                 super().__init__(        
                     instructions="",
                     stt=deepgram.STT(),
-                    # llm=openai.LLM(model="gpt-4o"),
                     tts=openai.TTS(),
                     vad=silero.VAD.load()
                 )
@@ -62,15 +60,15 @@ class CelebrityGuess(dspy.Module):
                 self.guessed_correctly = False
        
             async def on_enter(self):
-                # Start by a one line introduction
+                # Start by an introduction
                 await self.session.say("We're going to play the game of guess the celebrity.")
                 await self.session.say("Please think of a celebrity name.")
-                await asyncio.sleep(2)  # Wait 2 seconds before next question
+                await asyncio.sleep(2)  # Wait 2 seconds to give the user time to think of a celebrity name
 
                 @self.session.on("user_input_transcribed")
                 def on_transcript(transcript):
                     if transcript.is_final:
-                        logger.info(f'<--Response transcript: {transcript.transcript}')
+                        logger.debug(f'<--Response transcript: {transcript.transcript}')
                         asyncio.create_task(self.handle_user_response(transcript.transcript))  
 
                 # Ask series of yes/no questions
@@ -84,15 +82,16 @@ class CelebrityGuess(dspy.Module):
                         past_questions=self.past_questions,
                         past_answers=self.past_answers,
                     )
+                    logger.info(f'Question #{i} from the AI: {self.question.new_question}')
                     await self.session.say(self.question.new_question)
                     await asyncio.sleep(2)  # Wait 2 seconds before next question
 
-                    logger.info(f'++ guess_made: {self.question.guess_made}')
+                    logger.debug(f'++ guess_made: {self.question.guess_made}')
                     if self.question.guess_made and self.answer:
                         self.guessed_correctly = True
                         break
 
-                logger.info(f'++ Is the guess correct? {self.guessed_correctly}')
+                logger.debug(f'++ Is the guess correct? {self.guessed_correctly}')
                 if self.guessed_correctly:
                     await self.session.say("Yay! I guessed right!")
                 else:
@@ -103,7 +102,7 @@ class CelebrityGuess(dspy.Module):
             async def handle_user_response(self, user_text: str):
                 
                 user_text = user_text.lower().strip()
-                logger.info(f'lower case and stripped user_text: {user_text}')
+                logger.info(f'<--User response: {user_text}')
                 
                 if self.guessed_correctly:
                     return
@@ -113,7 +112,7 @@ class CelebrityGuess(dspy.Module):
                 elif "no" in user_text:
                     self.answer = False
                 else:
-                    logger.info(f'++ answer unssigned for {user_text}')
+                    logger.debug(f'++ answer unssigned for {user_text}')
                 
                 logger.debug(f'++ Appending {self.question.new_question} and answer {self.answer}')
                 self.past_questions.append(self.question.new_question)
