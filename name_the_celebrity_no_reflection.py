@@ -1,8 +1,11 @@
+import logging
 import dspy
 import openai
 import os   
 import sys
 from typing import Literal
+
+
 
 # voice agent imports
 import asyncio
@@ -10,6 +13,9 @@ from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents.voice import Agent, AgentSession
 from livekit.plugins import openai, silero, deepgram
 
+
+logger = logging.getLogger("listen-and-respond")
+logger.setLevel(logging.INFO)
 
 class QuestionGenerator(dspy.Signature):
     """Generate a yes/no question in order to guess the celebrity's name in the user's mind.
@@ -27,7 +33,7 @@ def ask_current_question(prompt, valid_responses=("y", "n")):
         response = input(f"{prompt} ({'/'.join(valid_responses)}): ").strip().lower()
         if response in valid_responses:
             return response
-        print(f"Please enter one of: {', '.join(valid_responses)}")
+        # print(f"Please enter one of: {', '.join(valid_responses)}")
 
 class CelebrityGuess(dspy.Module):
     def __init__(self, max_tries=10):
@@ -36,7 +42,6 @@ class CelebrityGuess(dspy.Module):
         openai.api_key = os.environ["OPENAI_API_KEY"]
         guessing_llm = dspy.LM('openai/gpt-4o-mini', api_key=openai.api_key)
         dspy.settings.configure(lm=guessing_llm)
-        # self.question_generator = dspy.ChainOfThought(QuestionGenerator)
 
 
     def forward(self):
@@ -58,6 +63,7 @@ class CelebrityGuess(dspy.Module):
                 # Start by a one line introduction
                 # await self.session.say("We're going to play the game of guess the celebrity.")
                 await self.session.say("Please think of a celebrity name.")
+                await asyncio.sleep(1)  # Wait 1 second before next question
 
                 # Then ask series of yes/no questions
                 await self.ask_series_of_yes_no_questions()
@@ -66,7 +72,10 @@ class CelebrityGuess(dspy.Module):
                 @self.session.on("user_input_transcribed")
                 def on_user_response(event):
                     if event.is_final:
+                        logger.info(f'event.transcript: {event.transcript}')
                         asyncio.create_task(self.handle_user_response(event.transcript))
+                
+            
             
             async def ask_series_of_yes_no_questions(self):
                 past_questions = []
@@ -77,7 +86,11 @@ class CelebrityGuess(dspy.Module):
                         past_questions=past_questions,
                         past_answers=past_answers,
                     )
-                    answer = ask_current_question(f"{question.new_question}").lower() == "y"
+                    await self.session.say(question.new_question)
+                    await asyncio.sleep(1)  # Wait 1 second before next question
+
+                    # answer = ask_current_question(f"{question.new_question}").lower() == "y"
+                    answer = True # for testing
                     past_questions.append(question.new_question)
                     past_answers.append(answer)
 
@@ -93,6 +106,7 @@ class CelebrityGuess(dspy.Module):
                 
             
             async def handle_user_response(self, user_text: str):
+                logger.info(f'user_text: {user_text}')
                 user_text = user_text.lower().strip()
                 
                 # Respond based on user's answer
