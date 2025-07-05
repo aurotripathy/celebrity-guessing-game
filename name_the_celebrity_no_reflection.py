@@ -2,8 +2,8 @@ import logging
 import dspy
 import openai
 import os   
-import sys
-from typing import Literal
+# import sys
+# from typing import Literal
 
 # voice agent imports
 import asyncio
@@ -16,8 +16,8 @@ logger = logging.getLogger("celebrity_guess")
 logger.setLevel(logging.INFO)
 
 class QuestionGenerator(dspy.Signature):
-    """Generate a yes/no question in order to guess the celebrity's name in the user's mind.
-    You can ask a general question or directly guess the celebrity's name if you think the signal is strong enough
+    """Generate a yes/no question to guess the celebrity's name in the user's mind.
+    You can also directly guess the celebrity's name if you think the signal is strong enough
     You should never ask the same question in the past_questions list.
     """
     past_questions: list[str] = dspy.InputField(desc="The list of questions asked in the past")
