@@ -1,9 +1,7 @@
 import logging
 import dspy
 import openai
-import os   
-# import sys
-# from typing import Literal
+import os
 
 # voice agent imports
 import asyncio
@@ -11,9 +9,14 @@ from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents.voice import Agent, AgentSession
 from livekit.plugins import openai, silero, deepgram
 
+import logging
+loggers = ["LiteLLM Proxy", "LiteLLM Router", "LiteLLM", "httpx"]
+for logger_name in loggers:
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.CRITICAL + 1) 
 
 logger = logging.getLogger("celebrity_guess")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 class QuestionGenerator(dspy.Signature):
     """Generate a yes/no question to guess the celebrity's name in the user's mind.
@@ -37,7 +40,8 @@ class CelebrityGuess(dspy.Module):
         model = "openai/gpt-4o"
         openai.api_key = os.environ["OPENAI_API_KEY"]
         guessing_llm = dspy.LM(model, api_key=openai.api_key)
-        dspy.settings.configure(lm=guessing_llm)
+        # dspy.settings.configure(lm=guessing_llm)
+        dspy.configure(lm=guessing_llm)
 
     def forward(self):
 
@@ -83,7 +87,7 @@ class CelebrityGuess(dspy.Module):
                     )
                     logger.info(f'--> question #{i} from AI: {self.question.new_question}')
                     await self.session.say(self.question.new_question)
-                    await asyncio.sleep(2)  # Wait 2 seconds before next question
+                    await asyncio.sleep(3)  # Wait 3 seconds before next question
 
                     logger.debug(f'++ guess_made: {self.question.guess_made}')
                     if self.question.guess_made and self.answer:
@@ -95,6 +99,7 @@ class CelebrityGuess(dspy.Module):
                     await self.session.say("Yay! I guessed right!")
                 else:
                     await self.session.say("Oops, I couldn't guess it right.")
+                return
 
                 
             
@@ -111,7 +116,9 @@ class CelebrityGuess(dspy.Module):
                 elif "no" in user_text:
                     self.answer = False
                 else:
-                    logger.debug(f'++ answer unssigned for {user_text}')
+                    logger.info(f'++ answer unssigned for {user_text}')
+                    await self.session.say("I didn't catch that. Could you answer yes or no?")
+                    return
                 
                 logger.debug(f'++ Appending {self.question.new_question} and answer {self.answer}')
                 self.past_questions.append(self.question.new_question)
