@@ -28,9 +28,8 @@ class QuestionGenerator(dspy.Signature):
 
 class CelebrityGuess(dspy.Module):
     """
-    This class is a voice agent that can guess the celebrity's name in the user's mind.
+    This class is a guessor + voice agent that can guess the celebrity's name in the user's mind.
     It uses a question generator to generate questions and a voice agent to ask the questions.
-    It uses a voice agent to ask the questions and a voice agent to answer the questions.
     It uses a voice agent to ask the questions and a voice agent to answer the questions.
     """    
     def __init__(self, max_tries=10):
@@ -51,8 +50,8 @@ class CelebrityGuess(dspy.Module):
                     tts=openai.TTS(),
                     vad=silero.VAD.load()
                 )
+                # Initialize the guessor
                 self.max_tries = 20
-                # Initialize the question generator
                 self.question_generator = dspy.ChainOfThought(QuestionGenerator)
                 self.past_questions = []
                 self.past_answers = []
@@ -76,13 +75,13 @@ class CelebrityGuess(dspy.Module):
                             
             async def ask_series_of_yes_no_questions(self):
                 """ Repeat the following until the correct guess is made or the max number of tries is reached. """
-                correct_guess = False
+
                 for i in range(self.max_tries):
                     self.question = self.question_generator(
                         past_questions=self.past_questions,
                         past_answers=self.past_answers,
                     )
-                    logger.info(f'Question #{i} from the AI: {self.question.new_question}')
+                    logger.info(f'--> question #{i} from AI: {self.question.new_question}')
                     await self.session.say(self.question.new_question)
                     await asyncio.sleep(2)  # Wait 2 seconds before next question
 
