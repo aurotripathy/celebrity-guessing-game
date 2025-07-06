@@ -99,6 +99,7 @@ class CelebrityGuess(dspy.Module):
                 else:
                     await self.session.say("Oops, I couldn't guess it right.")
                 await asyncio.sleep(1)
+                logger.info(f'--> Line of questioning:')
                 for question, answer in zip(self.past_questions, self.past_answers):
                     logger.info(f'--> question: {question} answer: {"yes" if answer else "no"}')
                 return
