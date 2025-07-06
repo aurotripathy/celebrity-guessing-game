@@ -37,7 +37,7 @@ class CelebrityGuess(dspy.Module):
     """    
     def __init__(self, max_tries=10):
         super().__init__()
-        model = "openai/gpt-4o"
+        model = "openai/gpt-4o-mini"
         openai.api_key = os.environ["OPENAI_API_KEY"]
         guessing_llm = dspy.LM(model, api_key=openai.api_key)
         # dspy.settings.configure(lm=guessing_llm)
@@ -71,7 +71,6 @@ class CelebrityGuess(dspy.Module):
                 @self.session.on("user_input_transcribed")
                 def on_transcript(transcript):
                     if transcript.is_final:
-                        logger.debug(f'<--Response transcript: {transcript.transcript}')
                         asyncio.create_task(self.handle_user_response(transcript.transcript))  
 
                 # Ask series of yes/no questions
@@ -99,6 +98,9 @@ class CelebrityGuess(dspy.Module):
                     await self.session.say("Yay! I guessed right!")
                 else:
                     await self.session.say("Oops, I couldn't guess it right.")
+                await asyncio.sleep(1)
+                for question, answer in zip(self.past_questions, self.past_answers):
+                    logger.info(f'--> question: {question} answer: {"yes" if answer else "no"}')
                 return
 
                 
